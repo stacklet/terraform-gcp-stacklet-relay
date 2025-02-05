@@ -36,7 +36,12 @@ variable "project_tags" {
 
 variable "billing_account" {
   type        = string
+  default = ""
   description = "The billing account to be associated with the Stacklet relay project"
+  validation {
+    condition = !var.create_project || length(var.billing_account) > 0
+    error_message = "billing_account must be set if you are creating the project"
+  }
 }
 
 variable "service_account_id" {

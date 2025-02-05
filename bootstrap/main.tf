@@ -3,7 +3,7 @@ provider "google" {
 }
 
 resource "google_project" "stacklet_relay" {
-  count           = vars.create_project ? 1 : 0
+  count           = var.create_project ? 1 : 0
   name            = var.project_name
   project_id      = var.project_id
   folder_id       = var.folder_id
@@ -14,7 +14,7 @@ resource "google_project" "stacklet_relay" {
 }
 
 locals {
-    project_id = vars.create_project ? google_project.stacklet_relay.project_id : var.project_id
+    project_id = var.create_project ? google_project.stacklet_relay[0].project_id : var.project_id
 }
 
 resource "google_project_service" "artifactregistry" {
