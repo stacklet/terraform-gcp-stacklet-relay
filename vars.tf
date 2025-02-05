@@ -11,11 +11,6 @@ variable "aws_event_bus" {
   description = "The ARN of the event bus."
 }
 
-variable "prefix" {
-  type        = string
-  description = "The string prefix to attach to all deployed assets."
-}
-
 variable "project_id" {
   type        = string
   description = "The project that the feeds and functions are created in."
@@ -29,6 +24,18 @@ variable "service_account" {
 #
 #  Additional variables
 #
+variable "default_labels" {
+  type        = map(string)
+  default     = {}
+  description = "Labels to be applied to created resources"
+}
+
+variable "prefix" {
+  type        = string
+  default     = ""
+  description = "An optional prefix to attach to all deployed assets."
+}
+
 variable "function_source_bucket" {
   type        = string
   default     = ""
@@ -45,12 +52,6 @@ variable "function_source_object_name" {
   type        = string
   default     = "function-source.zip"
   description = "The name of the storage object in the source bucket for the function source."
-}
-
-variable "default_labels" {
-  type        = map(string)
-  default     = {}
-  description = "Labels to be applied to created resources"
 }
 
 variable "location" {

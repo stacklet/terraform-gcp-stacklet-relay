@@ -6,13 +6,14 @@ data "archive_file" "function_source" {
 
 resource "google_storage_bucket" "function_source_bucket" {
   count                       = var.function_source_bucket == "" ? 1 : 0
-  name                        = "${var.prefix}-${var.project_id}-gcf-source" # Every bucket name must be globally unique
+  name                        = "${local.prefix}${var.project_id}-gcf-source" # Every bucket name must be globally unique
   location                    = var.function_source_bucket_location
   uniform_bucket_level_access = true
 }
 
 locals {
   function_source_bucket = var.function_source_bucket == "" ? google_storage_bucket.function_source_bucket[0].name : var.function_source_bucket
+  prefix = var.prefix == "" ? "" : endswith(var.prefix, "-") ? var.prefix : "${var.prefix}-"
 }
 
 resource "google_storage_bucket_object" "function_source" {
@@ -23,7 +24,7 @@ resource "google_storage_bucket_object" "function_source" {
 
 
 resource "google_cloudfunctions2_function" "function" {
-  name        = "${var.prefix}-relay"
+  name        = "${local.prefix}relay"
   location    = var.location
   description = "Stacklet cloud asset changes relay"
 
