@@ -1,3 +1,9 @@
+variable "default_labels" {
+    type = map(string)
+    default = {}
+    description = "Labels to be applied to created resources"
+}
+
 variable "create_project" {
   type = bool
   default = true
