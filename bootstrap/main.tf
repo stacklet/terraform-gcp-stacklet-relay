@@ -1,5 +1,6 @@
 provider "google" {
-  default_labels = var.default_labels
+  default_labels        = var.default_labels
+  user_project_override = true
 }
 
 resource "google_project" "stacklet_relay" {
