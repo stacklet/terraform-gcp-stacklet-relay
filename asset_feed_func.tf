@@ -1,6 +1,6 @@
 resource "google_cloudfunctions2_function" "asset_change_relay" {
   count       = var.relay_asset_changes ? 1 : 0
-  name        = "${local.prefix}-asset-change-relay"
+  name        = "${local.prefix}asset-change-relay"
   location    = var.location
   description = "Stacklet cloud asset changes relay"
 
@@ -39,7 +39,6 @@ resource "google_cloudfunctions2_function" "asset_change_relay" {
     retry_policy   = "RETRY_POLICY_RETRY"
   }
 }
-
 resource "google_cloudfunctions2_function_iam_member" "asset_change_relay_invoker" {
   count          = var.relay_asset_changes ? 1 : 0
   location       = google_cloudfunctions2_function.asset_change_relay[0].location

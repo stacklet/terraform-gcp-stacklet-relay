@@ -20,7 +20,7 @@ resource "google_logging_organization_sink" "organization_audit_feed" {
   org_id = var.organization_id
   filter = local.audit_filter
 
-  destination = google_pubsub_topic.audit_feed[0].id
+  destination = "pubsub.googleapis.com/${google_pubsub_topic.audit_feed[0].id}"
 }
 
 resource "google_logging_folder_sink" "folder_feed" {
@@ -31,7 +31,7 @@ resource "google_logging_folder_sink" "folder_feed" {
   folder = var.folder_ids[count.index]
   filter = local.audit_filter
 
-  destination = google_pubsub_topic.audit_feed[0].id
+  destination = "pubsub.googleapis.com/${google_pubsub_topic.audit_feed[0].id}"
 }
 
 resource "google_logging_project_sink" "project_feed" {
@@ -42,6 +42,6 @@ resource "google_logging_project_sink" "project_feed" {
   project = var.project_ids[count.index]
   filter  = local.audit_filter
 
-  destination = google_pubsub_topic.audit_feed[0].id
+  destination = "pubsub.googleapis.com/${google_pubsub_topic.audit_feed[0].id}"
 }
 

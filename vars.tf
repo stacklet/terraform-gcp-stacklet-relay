@@ -28,22 +28,12 @@ variable "relay_asset_changes" {
   type        = bool
   default     = true
   description = "Controls whether or not asset changes are forwarded - faster assetdb updates."
-
-  validation {
-    condition = var.relay_asset_changes || var.relay_audit_log
-    error_message = "One of relay_asset_changes or relay_audit_log must be true"
-  }
 }
 
 variable "relay_audit_log" {
   type        = bool
   default     = true
   description = "Controls whether or not audit logs are forwarded - required for 'gcp-audit' policies."
-
-  validation {
-    condition = var.relay_asset_changes || var.relay_audit_log
-    error_message = "One of relay_asset_changes or relay_audit_log must be true"
-  }
 }
 
 #

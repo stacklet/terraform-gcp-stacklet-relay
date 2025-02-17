@@ -9,11 +9,15 @@ resource "google_storage_bucket" "function_source_bucket" {
   name                        = "${local.prefix}${var.project_id}-gcf-source" # Every bucket name must be globally unique
   location                    = var.function_source_bucket_location
   uniform_bucket_level_access = true
+  # Since we only use the bucket during the cloud function creation, we don't care if we delete it.
+  soft_delete_policy {
+    retention_duration_seconds = 0
+  }
 }
 
 locals {
   function_source_bucket = var.function_source_bucket == "" ? google_storage_bucket.function_source_bucket[0].name : var.function_source_bucket
-  prefix                 = var.prefix == "" ? "" : endswith(var.prefix, "-") ? var.prefix : "${var.prefix}-"
+  prefix                 = var.prefix == "" ? "" : (endswith(var.prefix, "-") ? var.prefix : "${var.prefix}-")
 }
 
 resource "google_storage_bucket_object" "function_source" {
