@@ -19,7 +19,7 @@ import google.cloud.logging
 # Both the role and the event bus are provided with full ARNs
 AWS_ROLE = os.environ["AWS_ROLE"]
 AWS_EVENT_BUS = os.environ["AWS_EVENT_BUS"]
-
+DETAIL_TYPE = os.environ["RELAY_DETAIL_TYPE"]
 
 logger = logging.getLogger("relay")
 
@@ -53,7 +53,7 @@ def get_detail_from_cloud_event(cloud_event: CloudEvent) -> dict[str, Any] | Non
     data = base64.b64decode(cloud_event.data["message"]["data"])
     try:
         return {
-            "change_event": json.loads(data),
+            "event": json.loads(data),
             "type": cloud_event["type"],
             "specversion": cloud_event["specversion"],
             "source": cloud_event["source"],
@@ -90,7 +90,7 @@ def forward_event(cloud_event: CloudEvent):
                     {
                         "Time": datetime.now(UTC),
                         "Source": "GCP Relay",
-                        "DetailType": "GCP Cloud Asset Change",
+                        "DetailType": DETAIL_TYPE,
                         "Detail": json.dumps(payload),
                         "EventBusName": bus_name,
                     }

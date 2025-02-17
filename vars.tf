@@ -22,6 +22,21 @@ variable "service_account" {
 }
 
 #
+#  Relay control variables
+#
+variable "relay_asset_changes" {
+  type        = bool
+  default     = true
+  description = "Controls whether or not asset changes are forwarded - faster assetdb updates."
+}
+
+variable "relay_audit_log" {
+  type        = bool
+  default     = true
+  description = "Controls whether or not audit logs are forwarded - required for 'gcp-audit' policies."
+}
+
+#
 #  Additional variables
 #
 variable "default_labels" {
