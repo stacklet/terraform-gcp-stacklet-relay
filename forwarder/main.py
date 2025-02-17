@@ -53,7 +53,7 @@ def get_detail_from_cloud_event(cloud_event: CloudEvent) -> dict[str, Any] | Non
     data = base64.b64decode(cloud_event.data["message"]["data"])
     try:
         return {
-            "change_event": json.loads(data),
+            "event": json.loads(data),
             "type": cloud_event["type"],
             "specversion": cloud_event["specversion"],
             "source": cloud_event["source"],
