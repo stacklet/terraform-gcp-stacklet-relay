@@ -22,6 +22,12 @@ resource "google_logging_organization_sink" "organization_audit_feed" {
 
   destination = "pubsub.googleapis.com/${google_pubsub_topic.audit_feed[0].id}"
 }
+resource "google_pubsub_topic_iam_member" "organization_feed_publisher" {
+  count  = (var.relay_audit_log && var.organization_id != "") ? 1 : 0
+  topic  = google_pubsub_topic.audit_feed[0].name
+  role   = "roles/pubsub.publisher"
+  member = google_logging_organization_sink.organization_audit_feed[0].writer_identity
+}
 
 resource "google_logging_folder_sink" "folder_feed" {
   count       = var.relay_audit_log ? length(var.folder_ids) : 0
@@ -32,6 +38,12 @@ resource "google_logging_folder_sink" "folder_feed" {
   filter = local.audit_filter
 
   destination = "pubsub.googleapis.com/${google_pubsub_topic.audit_feed[0].id}"
+}
+resource "google_pubsub_topic_iam_member" "folder_feed_publisher" {
+  count  = var.relay_audit_log ? length(var.folder_ids) : 0
+  topic  = google_pubsub_topic.audit_feed[0].name
+  role   = "roles/pubsub.publisher"
+  member = google_logging_folder_sink.folder_feed[count.index].writer_identity
 }
 
 resource "google_logging_project_sink" "project_feed" {
@@ -45,3 +57,9 @@ resource "google_logging_project_sink" "project_feed" {
   destination = "pubsub.googleapis.com/${google_pubsub_topic.audit_feed[0].id}"
 }
 
+resource "google_pubsub_topic_iam_member" "project_feed_publisher" {
+  count  = var.relay_audit_log ? length(var.project_ids) : 0
+  topic  = google_pubsub_topic.audit_feed[0].name
+  role   = "roles/pubsub.publisher"
+  member = google_logging_project_sink.project_feed[count.index].writer_identity
+}
