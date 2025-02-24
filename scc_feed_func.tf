@@ -35,7 +35,7 @@ resource "google_cloudfunctions2_function" "scc_finding_relay" {
   event_trigger {
     trigger_region = var.location
     event_type     = "google.cloud.pubsub.topic.v1.messagePublished"
-    pubsub_topic   = google_pubsub_topic.audit_feed[0].id
+    pubsub_topic   = google_pubsub_topic.scc_findings_feed[0].id
     retry_policy   = "RETRY_POLICY_RETRY"
   }
 }
