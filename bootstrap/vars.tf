@@ -55,3 +55,15 @@ variable "service_account_display_name" {
   default     = "Stacklet relay service account"
   description = "The display name of the service account created in the relay project"
 }
+
+variable "relay_asset_changes" {
+  type        = bool
+  default     = true
+  description = "Controls whether or not asset changes are forwarded - faster assetdb updates."
+}
+
+variable "relay_security_command_center_findings" {
+  type        = bool
+  default     = true
+  description = "Controls whether or not security command center findings are forwarded - required for 'gcp-scc' policies."
+}

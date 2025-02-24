@@ -1,8 +1,8 @@
-resource "google_cloudfunctions2_function" "audit_log_relay" {
-  count       = var.relay_audit_log ? 1 : 0
-  name        = "${local.prefix}audit-log-relay"
+resource "google_cloudfunctions2_function" "scc_finding_relay" {
+  count       = var.relay_security_command_center_findings ? 1 : 0
+  name        = "${local.prefix}scc-finding-relay"
   location    = var.location
-  description = "Stacklet audit log relay"
+  description = "Stacklet security command center finding relay"
 
   build_config {
     runtime     = "python312"
@@ -25,7 +25,7 @@ resource "google_cloudfunctions2_function" "audit_log_relay" {
       AWS_EVENT_BUS     = var.aws_event_bus
       AWS_ROLE          = var.aws_role
       LOG_DEBUG         = var.log_debug ? "DEBUG" : ""
-      RELAY_DETAIL_TYPE = "GCP Audit Log"
+      RELAY_DETAIL_TYPE = "GCP SCC Finding"
 
     }
     ingress_settings      = "ALLOW_INTERNAL_ONLY"
@@ -35,23 +35,23 @@ resource "google_cloudfunctions2_function" "audit_log_relay" {
   event_trigger {
     trigger_region = var.location
     event_type     = "google.cloud.pubsub.topic.v1.messagePublished"
-    pubsub_topic   = google_pubsub_topic.audit_feed[0].id
+    pubsub_topic   = google_pubsub_topic.scc_findings_feed[0].id
     retry_policy   = "RETRY_POLICY_RETRY"
   }
 }
 
-resource "google_cloudfunctions2_function_iam_member" "audit_log_relay_invoker" {
-  count          = var.relay_audit_log ? 1 : 0
-  location       = google_cloudfunctions2_function.audit_log_relay[0].location
-  cloud_function = google_cloudfunctions2_function.audit_log_relay[0].name
+resource "google_cloudfunctions2_function_iam_member" "scc_finding_relay_invoker" {
+  count          = var.relay_security_command_center_findings ? 1 : 0
+  location       = google_cloudfunctions2_function.scc_finding_relay[0].location
+  cloud_function = google_cloudfunctions2_function.scc_finding_relay[0].name
   role           = "roles/cloudfunctions.invoker"
   member         = "serviceAccount:${var.service_account}"
 }
 
-resource "google_cloud_run_service_iam_member" "audit_log_relay_invoker" {
-  count    = var.relay_audit_log ? 1 : 0
-  location = google_cloudfunctions2_function.audit_log_relay[0].location
-  service  = google_cloudfunctions2_function.audit_log_relay[0].name
+resource "google_cloud_run_service_iam_member" "scc_finding_relay_invoker" {
+  count    = var.relay_security_command_center_findings ? 1 : 0
+  location = google_cloudfunctions2_function.scc_finding_relay[0].location
+  service  = google_cloudfunctions2_function.scc_finding_relay[0].name
   role     = "roles/run.invoker"
   member   = "serviceAccount:${var.service_account}"
 }
