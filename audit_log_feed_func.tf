@@ -41,7 +41,7 @@ resource "google_cloudfunctions2_function" "audit_log_relay" {
 }
 
 resource "google_cloudfunctions2_function_iam_member" "audit_log_relay_invoker" {
-  count       = var.relay_audit_log ? 1 : 0
+  count          = var.relay_audit_log ? 1 : 0
   location       = google_cloudfunctions2_function.audit_log_relay[0].location
   cloud_function = google_cloudfunctions2_function.audit_log_relay[0].name
   role           = "roles/cloudfunctions.invoker"
@@ -49,7 +49,7 @@ resource "google_cloudfunctions2_function_iam_member" "audit_log_relay_invoker" 
 }
 
 resource "google_cloud_run_service_iam_member" "audit_log_relay_invoker" {
-  count       = var.relay_audit_log ? 1 : 0
+  count    = var.relay_audit_log ? 1 : 0
   location = google_cloudfunctions2_function.audit_log_relay[0].location
   service  = google_cloudfunctions2_function.audit_log_relay[0].name
   role     = "roles/run.invoker"
