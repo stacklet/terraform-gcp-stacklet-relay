@@ -23,26 +23,38 @@ resource "google_project_service" "artifactregistry" {
   service            = "artifactregistry.googleapis.com"
   disable_on_destroy = false
 }
+
 resource "google_project_service" "cloudasset" {
+  count              = var.relay_asset_changes ? 1 : 0
   project            = local.project_id
   service            = "cloudasset.googleapis.com"
   disable_on_destroy = false
 }
+
 resource "google_project_service" "cloudbuild" {
   project            = local.project_id
   service            = "cloudbuild.googleapis.com"
   disable_on_destroy = false
 }
+
 resource "google_project_service" "cloudfunctions" {
   project            = local.project_id
   service            = "cloudfunctions.googleapis.com"
   disable_on_destroy = false
 }
+
+resource "google_project_service" "cloudresourcemanager" {
+  project            = local.project_id
+  service            = "cloudresourcemanager.googleapis.com"
+  disable_on_destroy = false
+}
+
 resource "google_project_service" "compute" {
   project            = local.project_id
   service            = "compute.googleapis.com"
   disable_on_destroy = false
 }
+
 resource "google_project_service" "eventarc" {
   project            = local.project_id
   service            = "eventarc.googleapis.com"
@@ -68,6 +80,13 @@ resource "google_project_service" "pubsub" {
 resource "google_project_service" "run" {
   project            = local.project_id
   service            = "run.googleapis.com"
+  disable_on_destroy = false
+}
+
+resource "google_project_service" "securitycenter" {
+  count              = var.relay_security_command_center_findings ? 1 : 0
+  project            = local.project_id
+  service            = "securitycenter.googleapis.com"
   disable_on_destroy = false
 }
 

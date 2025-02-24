@@ -36,6 +36,12 @@ variable "relay_audit_log" {
   description = "Controls whether or not audit logs are forwarded - required for 'gcp-audit' policies."
 }
 
+variable "relay_security_command_center_findings" {
+  type        = bool
+  default     = true
+  description = "Controls whether or not security command center findings are forwarded - required for 'gcp-scc' policies."
+}
+
 #
 #  Additional variables
 #
@@ -169,4 +175,10 @@ variable "asset_types" {
     "sqladmin.googleapis.com/Instance",
     "storage.googleapis.com/Bucket",
   ]
+}
+
+variable "security_findings_filter" {
+  type = string
+  default = "state = \"ACTIVE\""
+  description = "A filter to apply as streaming config for the security command center findings. By default all active findings are forwarded."  
 }
