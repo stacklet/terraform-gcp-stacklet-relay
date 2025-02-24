@@ -43,6 +43,8 @@ resource "google_project_service" "cloudfunctions" {
   disable_on_destroy = false
 }
 
+# The cloudresourcemanager API is used by terraform to update the state
+# of the resources it has created.
 resource "google_project_service" "cloudresourcemanager" {
   project            = local.project_id
   service            = "cloudresourcemanager.googleapis.com"

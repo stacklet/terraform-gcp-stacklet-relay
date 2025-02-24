@@ -178,7 +178,8 @@ variable "asset_types" {
 }
 
 variable "security_findings_filter" {
-  type = string
-  default = "state = \"ACTIVE\""
-  description = "A filter to apply as streaming config for the security command center findings. By default all active findings are forwarded."  
+  # The SCC feeds require a filter, and active findings are a reasonable default.
+  type        = string
+  default     = "state = \"ACTIVE\""
+  description = "A filter to apply as streaming config for the security command center findings. By default all active findings are forwarded."
 }
