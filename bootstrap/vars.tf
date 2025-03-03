@@ -18,7 +18,6 @@ variable "project_name" {
 
 variable "project_id" {
   type        = string
-  default     = "stacklet-relay"
   description = "The id of the project that will hold the Stacklet relay components"
 }
 

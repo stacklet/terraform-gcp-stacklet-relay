@@ -12,7 +12,8 @@ module.
 
 ```hcl
 module "relay_bootstrap" {
-  source = "github.com/stacklet/terraform-gcp-stacklet-relay/bootstrap"
+  source     = "github.com/stacklet/terraform-gcp-stacklet-relay/bootstrap"
+  project_id = "my-unique-project-id"
 }
 ```
 
