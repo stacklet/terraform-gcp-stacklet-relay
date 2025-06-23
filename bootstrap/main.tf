@@ -110,14 +110,13 @@ data "google_project" "gcp_project" {
 resource "google_project_iam_member" "cloud_build_artifact_registry" {
   for_each = toset([
     "roles/artifactregistry.writer",
-    "roles/artifactregistry.repoAdmin",
     "roles/logging.logWriter",
     "roles/storage.objectViewer"
   ])
   
   project = local.project_id
   role    = each.value
-  member  = "serviceAccount:${data.google_project.current.gcp_project}-compute@developer.gserviceaccount.com"
+  member  = "serviceAccount:${data.google_project.gcp_project.number}-compute@developer.gserviceaccount.com"
 }
 
 output "project_id" {
