@@ -101,6 +101,25 @@ resource "google_service_account" "service_account" {
   depends_on = [google_project_service.iam]
 }
 
+# Get project data
+data "google_project" "gcp_project" {
+  project_id = local.project_id
+}
+
+# Grant Cloud Build service account Artifact Registry permissions
+resource "google_project_iam_member" "cloud_build_artifact_registry" {
+  for_each = toset([
+    "roles/artifactregistry.writer",
+    "roles/artifactregistry.repoAdmin",
+    "roles/logging.logWriter",
+    "roles/storage.objectViewer"
+  ])
+  
+  project = local.project_id
+  role    = each.value
+  member  = "serviceAccount:${data.google_project.current.gcp_project}-compute@developer.gserviceaccount.com"
+}
+
 output "project_id" {
   value = local.project_id
 }

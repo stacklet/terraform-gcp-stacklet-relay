@@ -37,6 +37,7 @@ resource "google_cloudfunctions2_function" "asset_change_relay" {
     event_type     = "google.cloud.pubsub.topic.v1.messagePublished"
     pubsub_topic   = google_pubsub_topic.asset_feed[0].id
     retry_policy   = "RETRY_POLICY_RETRY"
+    service_account_email  = var.service_account
   }
 }
 resource "google_cloudfunctions2_function_iam_member" "asset_change_relay_invoker" {

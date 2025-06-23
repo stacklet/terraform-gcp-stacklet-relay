@@ -37,6 +37,7 @@ resource "google_cloudfunctions2_function" "audit_log_relay" {
     event_type     = "google.cloud.pubsub.topic.v1.messagePublished"
     pubsub_topic   = google_pubsub_topic.audit_feed[0].id
     retry_policy   = "RETRY_POLICY_RETRY"
+    service_account_email  = var.service_account
   }
 }
 
