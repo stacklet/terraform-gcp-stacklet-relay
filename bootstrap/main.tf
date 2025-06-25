@@ -108,11 +108,11 @@ data "google_project" "gcp_project" {
 
 # Grant Cloud Build service account Artifact Registry permissions
 resource "google_project_iam_member" "cloud_build_artifact_registry" {
-  for_each = toset([
+  for_each = var.create_project ? toset([
     "roles/artifactregistry.writer",
-    "roles/logging.logWriter",
+    "roles/logging.logWriter", 
     "roles/storage.objectViewer"
-  ])
+  ]) : toset([])
   
   project = local.project_id
   role    = each.value
