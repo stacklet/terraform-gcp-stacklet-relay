@@ -107,6 +107,9 @@ data "google_project" "gcp_project" {
 }
 
 # Grant Cloud Build service account Artifact Registry permissions
+
+# Need this since when Cloud Build job runs to create the cloud function, it uses default compute@developer.gserviceaccount.com service account 
+# to write artifacts to registry, write build logs and also be able to view a storage bucket which it dynamically creates to hold the source code.
 resource "google_project_iam_member" "cloud_build_artifact_registry" {
   for_each = var.create_project ? toset([
     "roles/artifactregistry.writer",
