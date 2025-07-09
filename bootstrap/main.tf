@@ -101,7 +101,7 @@ resource "google_service_account" "service_account" {
   depends_on = [google_project_service.iam]
 }
 
-# Get project data
+# Get project data for the project being used to create resources, It will be used to build default developer service account.
 data "google_project" "gcp_project" {
   project_id = local.project_id
 }
