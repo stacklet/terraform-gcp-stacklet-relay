@@ -101,6 +101,27 @@ resource "google_service_account" "service_account" {
   depends_on = [google_project_service.iam]
 }
 
+# Get project data for the project being used to create resources, It will be used to build default developer service account.
+data "google_project" "gcp_project" {
+  project_id = local.project_id
+}
+
+# Grant Cloud Build service account Artifact Registry permissions
+
+# Need this since when Cloud Build job runs to create the cloud function, it uses default compute@developer.gserviceaccount.com service account 
+# to write artifacts to registry, write build logs and also be able to view a storage bucket which it dynamically creates to hold the source code.
+resource "google_project_iam_member" "cloud_build_artifact_registry" {
+  for_each = var.create_project ? toset([
+    "roles/artifactregistry.writer",
+    "roles/logging.logWriter", 
+    "roles/storage.objectViewer"
+  ]) : toset([])
+  
+  project = local.project_id
+  role    = each.value
+  member  = "serviceAccount:${data.google_project.gcp_project.number}-compute@developer.gserviceaccount.com"
+}
+
 output "project_id" {
   value = local.project_id
 }
