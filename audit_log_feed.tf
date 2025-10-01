@@ -17,8 +17,9 @@ resource "google_logging_organization_sink" "organization_audit_feed" {
   name        = "${local.prefix}audit-feed"
   description = "Organization level audit logs for Stacklet relay"
 
-  org_id = var.organization_id
-  filter = local.audit_filter
+  org_id           = var.organization_id
+  filter           = local.audit_filter
+  include_children = var.audit_log_include_children
 
   destination = "pubsub.googleapis.com/${google_pubsub_topic.audit_feed[0].id}"
 }
@@ -34,8 +35,9 @@ resource "google_logging_folder_sink" "folder_feed" {
   name        = "${local.prefix}folder-audit-feed-${var.folder_ids[count.index]}"
   description = "Folder level audit logs for Stacklet relay"
 
-  folder = var.folder_ids[count.index]
-  filter = local.audit_filter
+  folder           = var.folder_ids[count.index]
+  filter           = local.audit_filter
+  include_children = var.audit_log_include_children
 
   destination = "pubsub.googleapis.com/${google_pubsub_topic.audit_feed[0].id}"
 }
