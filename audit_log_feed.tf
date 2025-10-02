@@ -17,7 +17,7 @@ resource "google_pubsub_topic" "audit_feed" {
 
 resource "google_logging_organization_sink" "organization_audit_feed_with_children" {
   count       = (var.relay_audit_log && var.organization_id != "" && var.audit_log_include_children) ? 1 : 0
-  name        = "${local.prefix}audit-feed"
+  name        = "${local.prefix}audit-feed-with-children"
   description = "Organization level audit logs for Stacklet relay"
 
   org_id           = var.organization_id
@@ -29,7 +29,7 @@ resource "google_logging_organization_sink" "organization_audit_feed_with_childr
 
 resource "google_logging_organization_sink" "organization_audit_feed_without_children" {
   count       = (var.relay_audit_log && var.organization_id != "" && !var.audit_log_include_children) ? 1 : 0
-  name        = "${local.prefix}audit-feed"
+  name        = "${local.prefix}audit-feed-without-children"
   description = "Organization level audit logs for Stacklet relay"
 
   org_id           = var.organization_id
@@ -48,7 +48,7 @@ resource "google_pubsub_topic_iam_member" "organization_feed_publisher" {
 
 resource "google_logging_folder_sink" "folder_feed_with_children" {
   count       = (var.relay_audit_log && var.audit_log_include_children) ? length(var.folder_ids) : 0
-  name        = "${local.prefix}folder-audit-feed-${var.folder_ids[count.index]}"
+  name        = "${local.prefix}folder-audit-feed-${var.folder_ids[count.index]}-with-children"
   description = "Folder level audit logs for Stacklet relay"
 
   folder           = var.folder_ids[count.index]
@@ -60,7 +60,7 @@ resource "google_logging_folder_sink" "folder_feed_with_children" {
 
 resource "google_logging_folder_sink" "folder_feed_without_children" {
   count       = (var.relay_audit_log && !var.audit_log_include_children) ? length(var.folder_ids) : 0
-  name        = "${local.prefix}folder-audit-feed-${var.folder_ids[count.index]}"
+  name        = "${local.prefix}folder-audit-feed-${var.folder_ids[count.index]}-without-children"
   description = "Folder level audit logs for Stacklet relay"
 
   folder           = var.folder_ids[count.index]
