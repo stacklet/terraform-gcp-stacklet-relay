@@ -7,6 +7,12 @@ locals {
   audit_filter = "logName:\"cloudaudit.googleapis.com%2Factivity\""
 }
 
+# Workaround for https://github.com/hashicorp/terraform-provider-google/issues/10811
+# Force recreation of sinks when include_children changes
+resource "terraform_data" "include_children_trigger" {
+  input = var.audit_log_include_children
+}
+
 resource "google_pubsub_topic" "audit_feed" {
   count = var.relay_audit_log ? 1 : 0
   name  = "${local.prefix}audit-feed"
@@ -22,6 +28,10 @@ resource "google_logging_organization_sink" "organization_audit_feed" {
   include_children = var.audit_log_include_children
 
   destination = "pubsub.googleapis.com/${google_pubsub_topic.audit_feed[0].id}"
+
+  lifecycle {
+    replace_triggered_by = [terraform_data.include_children_trigger]
+  }
 }
 resource "google_pubsub_topic_iam_member" "organization_feed_publisher" {
   count  = (var.relay_audit_log && var.organization_id != "") ? 1 : 0
@@ -40,6 +50,10 @@ resource "google_logging_folder_sink" "folder_feed" {
   include_children = var.audit_log_include_children
 
   destination = "pubsub.googleapis.com/${google_pubsub_topic.audit_feed[0].id}"
+
+  lifecycle {
+    replace_triggered_by = [terraform_data.include_children_trigger]
+  }
 }
 resource "google_pubsub_topic_iam_member" "folder_feed_publisher" {
   count  = var.relay_audit_log ? length(var.folder_ids) : 0
