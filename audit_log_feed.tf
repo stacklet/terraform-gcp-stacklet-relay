@@ -18,7 +18,7 @@ resource "google_pubsub_topic" "audit_feed" {
 resource "google_logging_organization_sink" "organization_audit_feed_with_children" {
   count       = (var.relay_audit_log && var.organization_id != "" && var.audit_log_include_children) ? 1 : 0
   name        = "${local.prefix}audit-feed-with-children"
-  description = "Organization level audit logs for Stacklet relay"
+  description = "Organization level audit logs for Stacklet relay (with children)"
 
   org_id           = var.organization_id
   filter           = local.audit_filter
@@ -30,7 +30,7 @@ resource "google_logging_organization_sink" "organization_audit_feed_with_childr
 resource "google_logging_organization_sink" "organization_audit_feed_without_children" {
   count       = (var.relay_audit_log && var.organization_id != "" && !var.audit_log_include_children) ? 1 : 0
   name        = "${local.prefix}audit-feed-without-children"
-  description = "Organization level audit logs for Stacklet relay"
+  description = "Organization level audit logs for Stacklet relay (without children)"
 
   org_id           = var.organization_id
   filter           = local.audit_filter
