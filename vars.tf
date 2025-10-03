@@ -42,6 +42,12 @@ variable "relay_security_command_center_findings" {
   description = "Controls whether or not security command center findings are forwarded - required for 'gcp-scc' policies."
 }
 
+variable "audit_log_include_children" {
+  type        = bool
+  default     = false
+  description = "Controls whether audit log sinks include logs from child resources (folders/projects)."
+}
+
 #
 #  Additional variables
 #
