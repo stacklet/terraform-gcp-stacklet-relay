@@ -1,4 +1,4 @@
-resource "1" "scc_finding_relay" {
+resource "google_cloudfunctions2_function" "scc_finding_relay" {
   count       = var.relay_security_command_center_findings ? 1 : 0
   name        = "${local.prefix}scc-finding-relay"
   location    = var.location
