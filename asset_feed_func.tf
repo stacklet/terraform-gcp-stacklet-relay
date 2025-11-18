@@ -21,6 +21,9 @@ resource "google_cloudfunctions2_function" "asset_change_relay" {
   }
 
   service_config {
+    max_instance_request_concurrency = 80
+    available_cpu                     = "1"
+
     environment_variables = {
       AWS_EVENT_BUS     = var.aws_event_bus
       AWS_ROLE          = var.aws_role
