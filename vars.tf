@@ -189,3 +189,36 @@ variable "security_findings_filter" {
   default     = "state = \"ACTIVE\""
   description = "A filter to apply as streaming config for the security command center findings. By default all active findings are forwarded."
 }
+
+#
+# Cloud Function Performance Configuration
+#
+variable "function_max_concurrency" {
+  type        = number
+  default     = 80
+  description = <<-EOT
+    Maximum number of concurrent requests each Cloud Function instance can handle.
+    Higher values increase throughput but require more CPU. Must be paired with
+    adequate CPU allocation (cpu >= 1 required for concurrency > 1).
+  EOT
+}
+
+variable "function_cpu" {
+  type        = string
+  default     = "1"
+  description = <<-EOT
+    CPU allocation for Cloud Function instances. Valid values: '0.08' to '8'
+    (in increments of 0.001 below 1, or 1/2/4/6/8 for >= 1). Default '1' supports
+    high concurrency. Note: GCP requires cpu >= 1 when max_concurrency > 1.
+  EOT
+}
+
+variable "function_memory" {
+  type        = string
+  default     = "256M"
+  description = <<-EOT
+    Memory allocation for Cloud Function instances. Valid values: '128M' to '32G'
+    in increments (e.g., '256M', '512M', '1G', '2G'). Default '256M'. Make sure
+    to configure memory values appropriately based on CPU count per GCP docs.
+  EOT
+}
