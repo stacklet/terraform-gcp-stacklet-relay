@@ -22,9 +22,10 @@ resource "google_cloudfunctions2_function" "audit_log_relay" {
 
   service_config {
     # explicitly set concurrency and cpu values.  When CPU < 1, concurrency value is set to 1 and can cause
-    # 429 errors when large numbers of concurrent requests come in 
-    max_instance_request_concurrency = 80
-    available_cpu                     = "1"
+    # 429 errors when large numbers of concurrent requests come in
+    max_instance_request_concurrency = var.function_max_concurrency
+    available_cpu                    = var.function_cpu
+    available_memory                 = var.function_memory
 
     environment_variables = {
       AWS_EVENT_BUS     = var.aws_event_bus
