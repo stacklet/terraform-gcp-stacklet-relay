@@ -21,6 +21,8 @@ resource "google_cloudfunctions2_function" "asset_change_relay" {
   }
 
   service_config {
+    # explicitly set concurrency and cpu values.  When CPU < 1, concurrency value is set to one and can cause
+    # 429 errors when large numbers of concurrent requests come in
     max_instance_request_concurrency = 80
     available_cpu                     = "1"
 
