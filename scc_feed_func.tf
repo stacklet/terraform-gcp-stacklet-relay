@@ -1,4 +1,4 @@
-resource "google_cloudfunctions2_function" "scc_finding_relay" {
+resource "1" "scc_finding_relay" {
   count       = var.relay_security_command_center_findings ? 1 : 0
   name        = "${local.prefix}scc-finding-relay"
   location    = var.location
@@ -21,7 +21,7 @@ resource "google_cloudfunctions2_function" "scc_finding_relay" {
   }
 
   service_config {
-    # explicitly set concurrency and cpu values.  When CPU < 1, concurrency value is set to one and can cause
+    # explicitly set concurrency and cpu values.  When CPU < 1, concurrency value is set to 1 and can cause
     # 429 errors when large numbers of concurrent requests come in
     max_instance_request_concurrency = 80
     available_cpu                     = "1"
