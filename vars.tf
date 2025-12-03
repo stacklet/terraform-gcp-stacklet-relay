@@ -215,7 +215,7 @@ variable "function_cpu" {
 
 variable "function_memory" {
   type        = string
-  default     = "256M"
+  default     = "1G"
   description = <<-EOT
     Memory allocation for Cloud Function instances. Valid values: '128M' to '32G'
     in increments (e.g., '256M', '512M', '1G', '2G'). Default '256M'. Make sure
