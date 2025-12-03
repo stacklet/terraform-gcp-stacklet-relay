@@ -74,8 +74,10 @@ def get_gcp_identity_token(audience: str) -> str:
     now = datetime.now(UTC)
 
     # Refresh token if expired or about to expire (5 minute buffer)
-    if not _cached_gcp_token or not _cached_gcp_token_expiry or \
-       (now + timedelta(minutes=5)) >= _cached_gcp_token_expiry:
+    if (
+        not _cached_gcp_token or not _cached_gcp_token_expiry
+        or (now + timedelta(minutes=5)) >= _cached_gcp_token_expiry
+    ):
 
         logger.info("Refreshing GCP identity token (expired or not cached)")
 
@@ -106,8 +108,10 @@ def get_aws_credentials(identity_token: str) -> dict:
     now = datetime.now(UTC)
 
     # Refresh credentials if expired or about to expire (5 minute buffer)
-    if not _cached_credentials or not _credentials_expiry or \
-       (now + timedelta(minutes=5)) >= _credentials_expiry:
+    if (
+        not _cached_credentials or not _credentials_expiry
+        or (now + timedelta(minutes=5)) >= _credentials_expiry
+    ):
 
         logger.info("Refreshing AWS credentials (expired or not cached)")
 
@@ -181,8 +185,8 @@ def setup():
 @functions_framework.cloud_event
 def forward_event(cloud_event: CloudEvent):
     """
-    Synchronous event forwarding using boto3 with connection pooling.
-    Cloud Run handles concurrency with up to 100 concurrent requests per instance.
+    Synchronous event forwarding using boto3 with connection pooling,
+    with concurrency set per the ENV
     """
     setup()
 
