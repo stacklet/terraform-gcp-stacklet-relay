@@ -193,7 +193,10 @@ def forward_event(cloud_event: CloudEvent):
 
     credentials = get_aws_credentials(identity_token)
 
-    if payload := get_detail_from_cloud_event(cloud_event):
-        send_event_to_aws(credentials, region, payload, bus_name, DETAIL_TYPE)
-    else:
-        logger.warning("could not parse cloud event payload")
+    try:
+        if payload := get_detail_from_cloud_event(cloud_event):
+            send_event_to_aws(credentials, region, payload, bus_name, DETAIL_TYPE)
+        else:
+            logger.warning("could not parse cloud event payload")
+    except Exception as e:
+        logger.warning(f"could not get events client: {e}")
