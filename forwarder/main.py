@@ -255,4 +255,4 @@ def forward_event(cloud_event: CloudEvent):
         else:
             logger.warning("could not parse cloud event payload")
     except Exception as e:
-        logger.warning(f"could not get events client: {e}")
+        logger.error(f"Error forwarding event to AWS EventBridge: {e}")
