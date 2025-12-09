@@ -1,6 +1,7 @@
 import base64
 import functools
 import json
+import threading
 
 from datetime import datetime, UTC, timedelta
 import logging
@@ -26,46 +27,81 @@ logger = logging.getLogger("relay")
 # Cache AWS credentials at module level (credentials are valid for 1 hour)
 _cached_credentials = None
 _credentials_expiry = None
+_credentials_lock = threading.Lock()
 
 # Cache GCP identity token at module level (tokens are valid for 1 hour)
 _cached_gcp_token = None
 _cached_gcp_token_expiry = None
+_gcp_token_lock = threading.Lock()
 
 # Module-level boto3 clients with connection pooling
 # Connection pool size matches Cloud Run concurrency setting
-CONCURRENCY = int(os.environ.get("CLOUD_RUN_CONCURRENCY", "100"))
+CONCURRENCY = int(os.environ.get("CLOUD_RUN_CONCURRENCY", "80"))
 _boto_config = Config(
     max_pool_connections=CONCURRENCY,
     retries={'max_attempts': 3, 'mode': 'standard'}
 )
 _sts_client = None
-_events_clients = {}  # Cache events clients per region
+_sts_client_lock = threading.Lock()
+_events_client = None  # Single cached events client
+_events_client_lock = threading.Lock()
+_events_client_expiry = None
 
 
 def get_sts_client():
     """Get or create the STS client with connection pooling."""
     global _sts_client
-    if _sts_client is None:
-        _sts_client = boto3.client('sts', config=_boto_config)
+
+    # Fast path - client already exists
+    if _sts_client is not None:
+        return _sts_client
+
+    # Slow path - need to create client
+    with _sts_client_lock:
+        # Double-check after acquiring lock (another thread may have created it)
+        if _sts_client is None:
+            logger.info("Creating STS client with connection pooling")
+            _sts_client = boto3.client('sts', config=_boto_config)
+
     return _sts_client
 
 
 def get_events_client(region: str, credentials: dict):
-    """Get or create an EventBridge client for the specified region."""
-    # Cache key includes region and credential expiry to handle credential rotation
-    cache_key = f"{region}_{credentials.get('Expiration', '')}"
+    """
+    Get or create an EventBridge client for the specified region.
+    Client is cached and recreated when credentials expire.
+    """
+    global _events_client, _events_client_expiry
 
-    if cache_key not in _events_clients:
-        _events_clients[cache_key] = boto3.client(
-            'events',
-            region_name=region,
-            aws_access_key_id=credentials["AccessKeyId"],
-            aws_secret_access_key=credentials["SecretAccessKey"],
-            aws_session_token=credentials["SessionToken"],
-            config=_boto_config
-        )
+    credentials_expiry = credentials.get("Expiration")
 
-    return _events_clients[cache_key]
+    # Check if client needs to be (re)created
+    needs_refresh = (
+        _events_client is None
+        or _events_client_expiry is None
+        or credentials_expiry != _events_client_expiry
+    )
+
+    if needs_refresh:
+        with _events_client_lock:
+            # Double-check after acquiring lock
+            if (
+                _events_client is None
+                or _events_client_expiry is None
+                or credentials_expiry != _events_client_expiry
+            ):
+                logger.info(f"Creating new EventBridge client for region {region}")
+                _events_client = boto3.client(
+                    'events',
+                    region_name=region,
+                    aws_access_key_id=credentials["AccessKeyId"],
+                    aws_secret_access_key=credentials["SecretAccessKey"],
+                    aws_session_token=credentials["SessionToken"],
+                    config=_boto_config
+                )
+                _events_client_expiry = credentials_expiry
+
+    return _events_client
 
 
 def get_gcp_identity_token(audience: str) -> str:
@@ -73,25 +109,33 @@ def get_gcp_identity_token(audience: str) -> str:
 
     now = datetime.now(UTC)
 
-    # Refresh token if expired or about to expire (5 minute buffer)
-    if (
+    # Check if refresh needed without lock first (fast path)
+    needs_refresh = (
         not _cached_gcp_token or not _cached_gcp_token_expiry
         or (now + timedelta(minutes=5)) >= _cached_gcp_token_expiry
-    ):
+    )
 
-        logger.info("Refreshing GCP identity token (expired or not cached)")
+    if needs_refresh:
+        with _gcp_token_lock:
+            # Double-check after acquiring lock (another thread may have refreshed)
+            now = datetime.now(UTC)
+            if (
+                not _cached_gcp_token or not _cached_gcp_token_expiry
+                or (now + timedelta(minutes=5)) >= _cached_gcp_token_expiry
+            ):
+                logger.info("Refreshing GCP identity token (expired or not cached)")
 
-        request = Request()
-        credentials = IDTokenCredentials(
-            request=request, target_audience=audience, use_metadata_identity_endpoint=True
-        )
-        credentials.refresh(request)
+                request = Request()
+                credentials = IDTokenCredentials(
+                    request=request, target_audience=audience, use_metadata_identity_endpoint=True
+                )
+                credentials.refresh(request)
 
-        _cached_gcp_token = credentials.token
-        # GCP tokens are typically valid for 1 hour, set expiry to 55 minutes from now
-        _cached_gcp_token_expiry = now + timedelta(minutes=55)
+                _cached_gcp_token = credentials.token
+                # GCP tokens are typically valid for 1 hour, set expiry to 55 minutes from now
+                _cached_gcp_token_expiry = now + timedelta(minutes=55)
 
-        logger.info(f"GCP identity token cached until {_cached_gcp_token_expiry}")
+                logger.info(f"GCP identity token cached until {_cached_gcp_token_expiry}")
     else:
         logger.debug(f"Using cached GCP identity token (valid until {_cached_gcp_token_expiry})")
 
@@ -107,25 +151,33 @@ def get_aws_credentials(identity_token: str) -> dict:
 
     now = datetime.now(UTC)
 
-    # Refresh credentials if expired or about to expire (5 minute buffer)
-    if (
+    # Check if refresh needed without lock first (fast path)
+    needs_refresh = (
         not _cached_credentials or not _credentials_expiry
         or (now + timedelta(minutes=5)) >= _credentials_expiry
-    ):
+    )
 
-        logger.info("Refreshing AWS credentials (expired or not cached)")
+    if needs_refresh:
+        with _credentials_lock:
+            # Double-check after acquiring lock (another thread may have refreshed)
+            now = datetime.now(UTC)
+            if (
+                not _cached_credentials or not _credentials_expiry
+                or (now + timedelta(minutes=5)) >= _credentials_expiry
+            ):
+                logger.info("Refreshing AWS credentials (expired or not cached)")
 
-        sts_client = get_sts_client()
-        res = sts_client.assume_role_with_web_identity(
-            RoleArn=AWS_ROLE,
-            RoleSessionName="StackletGCPRelay",
-            WebIdentityToken=identity_token,
-        )
+                sts_client = get_sts_client()
+                res = sts_client.assume_role_with_web_identity(
+                    RoleArn=AWS_ROLE,
+                    RoleSessionName="StackletGCPRelay",
+                    WebIdentityToken=identity_token,
+                )
 
-        _cached_credentials = res["Credentials"]
-        _credentials_expiry = res["Credentials"]["Expiration"]
+                _cached_credentials = res["Credentials"]
+                _credentials_expiry = res["Credentials"]["Expiration"]
 
-        logger.info(f"AWS credentials cached until {_credentials_expiry}")
+                logger.info(f"AWS credentials cached until {_credentials_expiry}")
     else:
         logger.debug(f"Using cached AWS credentials (valid until {_credentials_expiry})")
 
