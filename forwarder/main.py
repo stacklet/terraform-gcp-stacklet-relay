@@ -161,10 +161,16 @@ def get_gcp_identity_token(audience: str, current_time: datetime) -> str:
                 credentials.refresh(request)
 
                 _cached_gcp_token = credentials.token
-                # GCP tokens are typically valid for 1 hour, set expiry to 55 minutes from now
-                _cached_gcp_token_expiry = now + timedelta(minutes=55)
 
-                logger.info(f"GCP identity token cached until {_cached_gcp_token_expiry}")
+                # Use the expiry directly from the credentials object
+                # This handles both standard (1 hour) and extended (up to 12 hours) token lifetimes
+                if credentials.expiry:
+                    _cached_gcp_token_expiry = credentials.expiry
+                    logger.info(f"GCP token expires at {_cached_gcp_token_expiry}")
+                else:
+                    # Fallback if expiry is None (shouldn't happen, but be safe)
+                    _cached_gcp_token_expiry = now + timedelta(minutes=55)
+                    logger.info("No expiry in token, using fallback 55-minute expiry")
 
     return _cached_gcp_token  # type:ignore
 
@@ -275,3 +281,4 @@ def forward_event(cloud_event: CloudEvent):
             logger.warning(f"could not parse cloud event payload: {cloud_event}")
     except Exception as e:
         logger.error(f"Error forwarding event to AWS EventBridge: {e}")
+        raise
