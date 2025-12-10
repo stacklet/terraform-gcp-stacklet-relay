@@ -165,7 +165,11 @@ def get_gcp_identity_token(audience: str, current_time: datetime) -> str:
                 # Use the expiry directly from the credentials object
                 # This handles both standard (1 hour) and extended (up to 12 hours) token lifetimes
                 if credentials.expiry:
-                    _cached_gcp_token_expiry = credentials.expiry
+                    # Google's library returns timezone-naive datetime, make it timezone-aware
+                    if credentials.expiry.tzinfo is None:
+                        _cached_gcp_token_expiry = credentials.expiry.replace(tzinfo=UTC)
+                    else:
+                        _cached_gcp_token_expiry = credentials.expiry
                     logger.info(f"GCP token expires at {_cached_gcp_token_expiry}")
                 else:
                     # Fallback if expiry is None (shouldn't happen, but be safe)
