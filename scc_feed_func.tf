@@ -33,7 +33,6 @@ resource "google_cloudfunctions2_function" "scc_finding_relay" {
       LOG_DEBUG              = var.log_debug ? "DEBUG" : ""
       RELAY_DETAIL_TYPE      = "GCP SCC Finding"
       CLOUD_RUN_CONCURRENCY  = var.function_max_concurrency
-
     }
     ingress_settings      = "ALLOW_INTERNAL_ONLY"
     service_account_email = var.service_account

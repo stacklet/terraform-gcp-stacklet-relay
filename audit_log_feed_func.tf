@@ -33,7 +33,6 @@ resource "google_cloudfunctions2_function" "audit_log_relay" {
       LOG_DEBUG              = var.log_debug ? "DEBUG" : ""
       RELAY_DETAIL_TYPE      = "GCP Audit Log"
       CLOUD_RUN_CONCURRENCY  = var.function_max_concurrency
-
     }
     ingress_settings      = "ALLOW_INTERNAL_ONLY"
     service_account_email = var.service_account

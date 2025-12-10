@@ -55,7 +55,7 @@ _boto_config = Config(
 _REFRESH_BUFFER = timedelta(minutes=5)
 
 
-def _needs_refresh(cached_value: Any, expiry: datetime | None, current_time: datetime) -> bool:
+def credentials_need_refresh(cached_value: Any, expiry: datetime | None, current_time: datetime) -> bool:
     """
     Check if a cached credential or token needs refresh.
 
@@ -74,7 +74,13 @@ def _needs_refresh(cached_value: Any, expiry: datetime | None, current_time: dat
 
 _sts_client = None
 _sts_client_lock = threading.Lock()
-_events_client = None  # Single cached events client
+
+# EventBridge client cached at module level.
+# Region is extracted from AWS_EVENT_BUS environment variable (ARN format),
+# which is set at deployment time via Terraform and doesn't change during the
+# Cloud Run instance's lifetime. Therefore, a single cached client is safe -
+# we'll always use the same region per instance.
+_events_client = None
 _events_client_lock = threading.Lock()
 _events_client_expiry = None
 
@@ -108,6 +114,9 @@ def get_events_client(region: str, credentials: dict):
     """
     Get or create an EventBridge client for the specified region.
     Client is cached and recreated when credentials expire.
+
+    Note: Region is constant per Cloud Run instance (from AWS_EVENT_BUS env var),
+    so caching a single client is safe.
     """
     global _events_client, _events_client_expiry
 
@@ -147,11 +156,11 @@ def get_gcp_identity_token(audience: str, current_time: datetime) -> str:
     global _cached_gcp_token, _cached_gcp_token_expiry
 
     # Check if refresh needed without lock first (fast path)
-    if _needs_refresh(_cached_gcp_token, _cached_gcp_token_expiry, current_time):
+    if credentials_need_refresh(_cached_gcp_token, _cached_gcp_token_expiry, current_time):
         with _gcp_token_lock:
             # Double-check after acquiring lock (another thread may have refreshed)
             now = datetime.now(UTC)
-            if _needs_refresh(_cached_gcp_token, _cached_gcp_token_expiry, now):
+            if credentials_need_refresh(_cached_gcp_token, _cached_gcp_token_expiry, now):
                 logger.info("Refreshing GCP identity token (expired or not cached)")
 
                 request = Request()
@@ -188,11 +197,11 @@ def get_aws_credentials(identity_token: str, current_time: datetime) -> dict:
     global _cached_credentials, _credentials_expiry
 
     # Check if refresh needed without lock first (fast path)
-    if _needs_refresh(_cached_credentials, _credentials_expiry, current_time):
+    if credentials_need_refresh(_cached_credentials, _credentials_expiry, current_time):
         with _credentials_lock:
             # Double-check after acquiring lock (another thread may have refreshed)
             now = datetime.now(UTC)
-            if _needs_refresh(_cached_credentials, _credentials_expiry, now):
+            if credentials_need_refresh(_cached_credentials, _credentials_expiry, now):
                 logger.info("Refreshing AWS credentials (expired or not cached)")
 
                 sts_client = get_sts_client()
@@ -284,5 +293,5 @@ def forward_event(cloud_event: CloudEvent):
         else:
             logger.warning(f"could not parse cloud event payload: {cloud_event}")
     except Exception as e:
-        logger.error(f"Error forwarding event to AWS EventBridge: {e}")
+        logger.error(f"Error forwarding event to AWS EventBridge: {e}", exc_info=True)
         raise
