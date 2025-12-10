@@ -24,6 +24,14 @@ DETAIL_TYPE = os.environ["RELAY_DETAIL_TYPE"]
 
 logger = logging.getLogger("relay")
 
+# Threading and Parallelism Model:
+# Cloud Run handles parallelism by processing up to CLOUD_RUN_CONCURRENCY (default: 80)
+# concurrent requests per instance. Each request runs in its own thread, so multiple
+# threads may simultaneously access the module-level cached credentials and tokens below.
+# The threading.Lock() objects protect shared state during credential refresh operations,
+# using a double-checked locking pattern for optimal performance (fast path without lock,
+# slow path with lock only when refresh is needed).
+
 # Cache AWS credentials at module level (credentials are valid for 1 hour)
 _cached_credentials = None
 _credentials_expiry = None
@@ -42,6 +50,28 @@ _boto_config = Config(
     max_pool_connections=CONCURRENCY,
     retries={'max_attempts': 3, 'mode': 'standard'}
 )
+
+# Pre-compute timedelta to avoid creating it on every request
+_REFRESH_BUFFER = timedelta(minutes=5)
+
+
+def _needs_refresh(cached_value: Any, expiry: datetime | None, current_time: datetime) -> bool:
+    """
+    Check if a cached credential or token needs refresh.
+
+    Args:
+        cached_value: The cached credential or token (None if not cached)
+        expiry: When the cached value expires (None if not set)
+        current_time: Current time to check against expiry
+
+    Returns:
+        True if the value needs refresh, False if still valid
+    """
+    if not cached_value or expiry is None:
+        return True
+    return (current_time + _REFRESH_BUFFER) >= expiry
+
+
 _sts_client = None
 _sts_client_lock = threading.Lock()
 _events_client = None  # Single cached events client
@@ -50,7 +80,14 @@ _events_client_expiry = None
 
 
 def get_sts_client():
-    """Get or create the STS client with connection pooling."""
+    """
+    Get or create the STS client with connection pooling.
+
+    Note: The STS client does not require AWS credentials - it's used to OBTAIN
+    credentials via AssumeRoleWithWebIdentity. It only needs to be created once
+    per instance and can be reused throughout the instance lifecycle. Only the
+    EventBridge client needs to be recreated when credentials expire.
+    """
     global _sts_client
 
     # Fast path - client already exists
@@ -105,25 +142,16 @@ def get_events_client(region: str, credentials: dict):
     return _events_client
 
 
-def get_gcp_identity_token(audience: str) -> str:
+def get_gcp_identity_token(audience: str, current_time: datetime) -> str:
+    """Get GCP identity token with caching. Pass current time to avoid repeated datetime calls."""
     global _cached_gcp_token, _cached_gcp_token_expiry
 
-    now = datetime.now(UTC)
-
     # Check if refresh needed without lock first (fast path)
-    needs_refresh = (
-        not _cached_gcp_token or not _cached_gcp_token_expiry
-        or (now + timedelta(minutes=5)) >= _cached_gcp_token_expiry
-    )
-
-    if needs_refresh:
+    if _needs_refresh(_cached_gcp_token, _cached_gcp_token_expiry, current_time):
         with _gcp_token_lock:
             # Double-check after acquiring lock (another thread may have refreshed)
             now = datetime.now(UTC)
-            if (
-                not _cached_gcp_token or not _cached_gcp_token_expiry
-                or (now + timedelta(minutes=5)) >= _cached_gcp_token_expiry
-            ):
+            if _needs_refresh(_cached_gcp_token, _cached_gcp_token_expiry, now):
                 logger.info("Refreshing GCP identity token (expired or not cached)")
 
                 request = Request()
@@ -137,35 +165,24 @@ def get_gcp_identity_token(audience: str) -> str:
                 _cached_gcp_token_expiry = now + timedelta(minutes=55)
 
                 logger.info(f"GCP identity token cached until {_cached_gcp_token_expiry}")
-    else:
-        logger.debug(f"Using cached GCP identity token (valid until {_cached_gcp_token_expiry})")
 
     return _cached_gcp_token  # type:ignore
 
 
-def get_aws_credentials(identity_token: str) -> dict:
+def get_aws_credentials(identity_token: str, current_time: datetime) -> dict:
     """
     Get AWS credentials via STS AssumeRoleWithWebIdentity.
     Returns cached credentials if still valid.
+    Pass current time to avoid repeated datetime calls.
     """
     global _cached_credentials, _credentials_expiry
 
-    now = datetime.now(UTC)
-
     # Check if refresh needed without lock first (fast path)
-    needs_refresh = (
-        not _cached_credentials or not _credentials_expiry
-        or (now + timedelta(minutes=5)) >= _credentials_expiry
-    )
-
-    if needs_refresh:
+    if _needs_refresh(_cached_credentials, _credentials_expiry, current_time):
         with _credentials_lock:
             # Double-check after acquiring lock (another thread may have refreshed)
             now = datetime.now(UTC)
-            if (
-                not _cached_credentials or not _credentials_expiry
-                or (now + timedelta(minutes=5)) >= _credentials_expiry
-            ):
+            if _needs_refresh(_cached_credentials, _credentials_expiry, now):
                 logger.info("Refreshing AWS credentials (expired or not cached)")
 
                 sts_client = get_sts_client()
@@ -179,8 +196,6 @@ def get_aws_credentials(identity_token: str) -> dict:
                 _credentials_expiry = res["Credentials"]["Expiration"]
 
                 logger.info(f"AWS credentials cached until {_credentials_expiry}")
-    else:
-        logger.debug(f"Using cached AWS credentials (valid until {_credentials_expiry})")
 
     return _cached_credentials
 
@@ -243,12 +258,15 @@ def forward_event(cloud_event: CloudEvent):
     """
     setup()
 
-    identity_token = get_gcp_identity_token("sts.amazonaws.com")
+    # Get current time once and pass to credential functions to avoid repeated calls
+    current_time = datetime.now(UTC)
+
+    identity_token = get_gcp_identity_token("sts.amazonaws.com", current_time)
     bus_parts = AWS_EVENT_BUS.split(":")
     region = bus_parts[3]
     bus_name = bus_parts[-1].split("/", 1)[1]
 
-    credentials = get_aws_credentials(identity_token)
+    credentials = get_aws_credentials(identity_token, current_time)
 
     try:
         if payload := get_detail_from_cloud_event(cloud_event):
