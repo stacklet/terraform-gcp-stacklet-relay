@@ -123,10 +123,12 @@ def get_events_client(region: str, credentials: dict):
     credentials_expiry = credentials.get("Expiration")
 
     # Check if client needs to be (re)created
+    # Compare as timestamps to handle any timezone representation differences
     needs_refresh = (
         _events_client is None
         or _events_client_expiry is None
-        or credentials_expiry != _events_client_expiry
+        or credentials_expiry is None
+        or credentials_expiry.timestamp() != _events_client_expiry.timestamp()
     )
 
     if needs_refresh:
@@ -135,7 +137,8 @@ def get_events_client(region: str, credentials: dict):
             if (
                 _events_client is None
                 or _events_client_expiry is None
-                or credentials_expiry != _events_client_expiry
+                or credentials_expiry is None
+                or credentials_expiry.timestamp() != _events_client_expiry.timestamp()
             ):
                 logger.info(f"Creating new EventBridge client for region {region}")
                 _events_client = boto3.client(
@@ -185,7 +188,9 @@ def get_gcp_identity_token(audience: str, current_time: datetime) -> str:
                     _cached_gcp_token_expiry = now + timedelta(minutes=55)
                     logger.info("No expiry in token, using fallback 55-minute expiry")
 
-    return _cached_gcp_token  # type:ignore
+    if _cached_gcp_token is None:
+        raise RuntimeError("Failed to obtain GCP identity token")
+    return _cached_gcp_token
 
 
 def get_aws_credentials(identity_token: str, current_time: datetime) -> dict:
