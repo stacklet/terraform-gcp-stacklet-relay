@@ -36,6 +36,7 @@ _gcp_token_lock = threading.Lock()
 
 # Module-level boto3 clients with connection pooling
 # Connection pool size matches Cloud Run concurrency setting
+# with default set to tf vars default (also the Cloud Run default)
 CONCURRENCY = int(os.environ.get("CLOUD_RUN_CONCURRENCY", "80"))
 _boto_config = Config(
     max_pool_connections=CONCURRENCY,
@@ -84,7 +85,7 @@ def get_events_client(region: str, credentials: dict):
 
     if needs_refresh:
         with _events_client_lock:
-            # Double-check after acquiring lock
+            # Double-check after acquiring lock to prevent duplicate creation
             if (
                 _events_client is None
                 or _events_client_expiry is None
@@ -203,7 +204,7 @@ def get_detail_from_cloud_event(cloud_event: CloudEvent) -> dict[str, Any] | Non
 def send_event_to_aws(credentials: dict, region: str, payload: dict, bus_name: str, detail_type: str):
     """
     Send event to AWS EventBridge using synchronous boto3 with connection pooling.
-    Cloud Run's concurrency model handles parallelism across 100 concurrent requests.
+    Cloud Run's concurrency model handles parallelism across 'CLOUD_RUN_CONCURRENCY' concurrent requests.
     """
     logger.debug(f"sending event {payload=}")
 
@@ -253,6 +254,6 @@ def forward_event(cloud_event: CloudEvent):
         if payload := get_detail_from_cloud_event(cloud_event):
             send_event_to_aws(credentials, region, payload, bus_name, DETAIL_TYPE)
         else:
-            logger.warning("could not parse cloud event payload")
+            logger.warning(f"could not parse cloud event payload: {cloud_event}")
     except Exception as e:
         logger.error(f"Error forwarding event to AWS EventBridge: {e}")
