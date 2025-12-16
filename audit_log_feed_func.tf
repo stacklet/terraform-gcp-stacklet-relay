@@ -28,11 +28,11 @@ resource "google_cloudfunctions2_function" "audit_log_relay" {
     available_memory                 = var.function_memory
 
     environment_variables = {
-      AWS_EVENT_BUS     = var.aws_event_bus
-      AWS_ROLE          = var.aws_role
-      LOG_DEBUG         = var.log_debug ? "DEBUG" : ""
-      RELAY_DETAIL_TYPE = "GCP Audit Log"
-
+      AWS_EVENT_BUS          = var.aws_event_bus
+      AWS_ROLE               = var.aws_role
+      LOG_DEBUG              = var.log_debug ? "DEBUG" : ""
+      RELAY_DETAIL_TYPE      = "GCP Audit Log"
+      CLOUD_RUN_CONCURRENCY  = var.function_max_concurrency
     }
     ingress_settings      = "ALLOW_INTERNAL_ONLY"
     service_account_email = var.service_account
