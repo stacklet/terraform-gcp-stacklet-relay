@@ -51,12 +51,6 @@ variable "audit_log_include_children" {
 #
 #  Additional variables
 #
-variable "default_labels" {
-  type        = map(string)
-  default     = {}
-  description = "Labels to be applied to created resources"
-}
-
 variable "prefix" {
   type        = string
   default     = ""

@@ -1,8 +1,3 @@
-provider "google" {
-  default_labels        = var.default_labels
-  user_project_override = true
-}
-
 resource "google_project" "stacklet_relay" {
   count           = var.create_project ? 1 : 0
   name            = var.project_name
