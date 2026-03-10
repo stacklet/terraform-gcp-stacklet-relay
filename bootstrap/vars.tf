@@ -31,8 +31,11 @@ variable "project_tags" {
 variable "billing_account" {
   type        = string
   default     = ""
-  description = "The billing account to be associated with the Stacklet relay project"
-  validation {
+  description = "The billing account to be associated with the Stacklet relay project. Required when create_project is true."
+}
+
+check "billing_account_required" {
+  assert {
     condition     = !var.create_project || length(var.billing_account) > 0
     error_message = "billing_account must be set if you are creating the project"
   }
