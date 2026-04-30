@@ -1,3 +1,12 @@
+## Next Release
+
+### Features
+### Changes
+### Fixes
+### Other
+
+---
+
 ## December 3, 2025
 
 ### Features
