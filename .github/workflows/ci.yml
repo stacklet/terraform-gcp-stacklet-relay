@@ -27,7 +27,7 @@ jobs:
           postfix: _TOOL_VERSION
 
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@5e8dbf3c6d9deaf4193ca7a8fb23f2ac83bb6c85 # v4.0.0
+        uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
         with:
           terraform_version: ${{ env.TERRAFORM_TOOL_VERSION }}
 
@@ -37,4 +37,4 @@ jobs:
           tflint_version: ${{ env.TFLINT_TOOL_VERSION }}
 
       - name: Run pre-commit checks
-        uses: j178/prek-action@cbc2f23eb5539cf20d82d1aabd0d0ecbcc56f4e3 # v2.0.2
+        uses: j178/prek-action@bdca6f102f98e2b4c7029491a53dfd366469e33d # v2.0.4
